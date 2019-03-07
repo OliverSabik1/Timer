@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Casovac</string>
+    <string name="toastMessageEmpty">Pole nemoze byt prazdne</string>
+    <string name="toastMessagePositiveNumber">Zadaj vacsie cislo ako 0</string>
+    <string name="buttonStartText">Spusti</string>
+    <string name="buttonPauseText">Stopni</string>
+    <string name="toastMessageTimeRunOut">Cas sa minul</string>
+    <string name="notificationTitle">Casovac</string>
+    <string name="notificationContentMessage">Cas sa minul</string>
+    <string name="hintField">Minuty</string>
+    <string name="buttonSetText">Nastav</string>
+</resources>

@@ -13,7 +13,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.os.Vibrator;
-
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
@@ -21,13 +20,14 @@ public class MainActivity extends AppCompatActivity {
     private final int NOTIFICATION_ID = 1;
 
     private EditText editTextInput;
-    private Button buttonSet;
     private TextView countdownText;
-    private Button countdownButton;
     private String timeLeftText;
 
+    private Button setButton;
+    private Button countdownButton;
+
     private CountDownTimer countdownTimer;
-    private long timeLeftInMilliseconds; // 10 minutes
+    private long timeLeftInMilliseconds;
     private boolean timerRunning;
 
     @Override
@@ -35,25 +35,26 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        editTextInput = findViewById(R.id.edit_text_input);
-        buttonSet = findViewById(R.id.button_set);
         countdownText = findViewById(R.id.countdown_text);
+        editTextInput = findViewById(R.id.edit_text_input);
+
+        setButton = findViewById(R.id.button_set);
         countdownButton = findViewById(R.id.countdown_button);
 
-        buttonSet.setOnClickListener(new View.OnClickListener() {
+        setButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String input = editTextInput.getText().toString();
 
                 if (input.length() == 0){
-                    Toast.makeText(MainActivity.this, "Field can't be empty",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.toastMessageEmpty,Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 long millisInput = Long.parseLong(input) * 60000;
 
                 if (millisInput == 0) {
-                    Toast.makeText(MainActivity.this, "Enter positive number",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.toastMessagePositiveNumber,Toast.LENGTH_SHORT).show();
                     return;
                 }
                 setTime(millisInput);
@@ -82,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void stopTimer() {
         countdownTimer.cancel();
-        countdownButton.setText("Start");
+        countdownButton.setText(R.string.buttonStartText);
         timerRunning = false;
         updateButtons();
     }
@@ -94,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startTimer() {
-        countdownTimer = new CountDownTimer(timeLeftInMilliseconds, 1000) {
+        countdownTimer = new CountDownTimer(timeLeftInMilliseconds, 100) {
             @Override
             public void onTick(long millisUntilFinished) {
                 timeLeftInMilliseconds = millisUntilFinished;
@@ -105,16 +106,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFinish() {
                 displayNotification();
-                Toast.makeText(MainActivity.this, "Time is out",Toast.LENGTH_SHORT).show();
-                countdownButton.setText("Start");
+                Toast.makeText(MainActivity.this, R.string.toastMessageTimeRunOut, Toast.LENGTH_SHORT).show();
+                countdownButton.setText(R.string.buttonStartText);
                 timerRunning = false;
-                countdownText.setText("00:00");
                 getVibration();
                 updateButtons();
-
             }
         }.start();
-        countdownButton.setText("Pause");
+        countdownButton.setText(R.string.buttonPauseText);
         timerRunning = true;
     }
 
@@ -138,19 +137,19 @@ public class MainActivity extends AppCompatActivity {
     private void updateButtons() {
         if (timerRunning) {
             editTextInput.setVisibility(View.INVISIBLE);
-            buttonSet.setVisibility(View.INVISIBLE);
+            setButton.setVisibility(View.INVISIBLE);
         }
         else {
             editTextInput.setVisibility(View.VISIBLE);
-            buttonSet.setVisibility(View.VISIBLE);
+            setButton.setVisibility(View.VISIBLE);
         }
     }
 
     private void displayNotification() {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID);
         builder.setSmallIcon(R.drawable.ic_launcher_background);
-        builder.setContentTitle("Timer");
-        builder.setContentText("Your time ran out");
+        builder.setContentTitle(getString(R.string.notificationTitle));
+        builder.setContentText(getString( R.string.notificationContentMessage));
         builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
         NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
@@ -160,5 +159,27 @@ public class MainActivity extends AppCompatActivity {
     private void getVibration() {
         Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         v.vibrate(500);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putLong("timeLeftInMilliseconds", timeLeftInMilliseconds);
+        outState.putBoolean("timerRunning",timerRunning);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        timeLeftInMilliseconds = savedInstanceState.getLong("timeLeftInMilliseconds");
+        timerRunning = savedInstanceState.getBoolean("timerRunning");
+        updateTimer();
+        updateButtons();
+
+        if (timerRunning){
+            startTimer();
+        }
     }
 }
