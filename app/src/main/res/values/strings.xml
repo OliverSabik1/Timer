@@ -5,8 +5,8 @@
     <string name="buttonStartText">Start</string>
     <string name="buttonPauseText">Pause</string>
     <string name="toastMessageTimeRunOut">Time run out</string>
-    <string name="notificationTitle">Timer</string>
-    <string name="notificationContentMessage">Time run out</string>
+    <string name="notificationTimerTitle">Timer</string>
+    <string name="notificationTimerContentMessage">Time run out</string>
     <string name="hintField">Minutes</string>
     <string name="buttonSetText">Set</string>
 </resources>

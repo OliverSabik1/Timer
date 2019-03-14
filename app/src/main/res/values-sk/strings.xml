@@ -5,8 +5,8 @@
     <string name="buttonStartText">Spusti</string>
     <string name="buttonPauseText">Stopni</string>
     <string name="toastMessageTimeRunOut">Cas sa minul</string>
-    <string name="notificationTitle">Casovac</string>
-    <string name="notificationContentMessage">Cas sa minul</string>
+    <string name="notificationTimerTitle">Casovac</string>
+    <string name="notificationTimerContentMessage">Cas sa minul</string>
     <string name="hintField">Minuty</string>
     <string name="buttonSetText">Nastav</string>
 </resources>

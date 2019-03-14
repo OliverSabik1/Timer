@@ -16,15 +16,13 @@ import android.os.Vibrator;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String CHANNEL_ID = "personal_notification";
-    private final int NOTIFICATION_ID = 1;
 
     private EditText editTextInput;
     private TextView countdownText;
     private String timeLeftText;
 
     private Button setButton;
-    private Button countdownButton;
+    private Button startStopButton;
 
     private CountDownTimer countdownTimer;
     private long timeLeftInMilliseconds;
@@ -32,6 +30,8 @@ public class MainActivity extends AppCompatActivity {
     private long endTime;
     private boolean timerRunning;
 
+    private static final int NOTIFICATION_ID = 1;
+    private static final String CHANNEL_ID = "personal_notification";
     private static final String TIME_LEFT_IN_MILLISECONDS = "timeLeftInMilliseconds";
     private static final String TIMER_RUNNING = "timerRunning";
     private static final String END_TIME = "endTime";
@@ -45,25 +45,43 @@ public class MainActivity extends AppCompatActivity {
         editTextInput = findViewById(R.id.edit_text_input);
 
         setButton = findViewById(R.id.button_set);
-        countdownButton = findViewById(R.id.countdown_button);
+        startStopButton = findViewById(R.id.countdown_button);
 
         setButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (isTimerInputValid()){
-                    setTime(timeSetInMilliseconds);
-                    cleanTimerInput();
+                TimerInputValidationStates timerInputValidationStates = getTimerInputState ();
+
+                if (timerInputValidationStates == TimerInputValidationStates.VALID){
+                    setTimerDuration(timeSetInMilliseconds);
+                }
+                else{
+                    displayToastMessage(timerInputValidationStates);
                 }
             }
         });
 
-        countdownButton.setOnClickListener(new View.OnClickListener() {
+        startStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startStopTimer();
+                if (!timerRunning) {
+                    startTimer();
+                }
+                else {
+                    stopTimer();
+                }
             }
         });
-        updateTimer();
+
+        setCountdownText();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (timerRunning){
+            stopTimer();
+        }
     }
 
     @Override
@@ -73,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         outState.putLong(TIME_LEFT_IN_MILLISECONDS , timeLeftInMilliseconds);
         outState.putBoolean(TIMER_RUNNING,timerRunning);
         outState.putLong(END_TIME,endTime );
+
     }
 
     @Override
@@ -81,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
 
         timeLeftInMilliseconds = savedInstanceState.getLong(TIME_LEFT_IN_MILLISECONDS);
         timerRunning = savedInstanceState.getBoolean(TIMER_RUNNING);
-        updateTimer();
+        setCountdownText();
         updateVisibilityOfButtons();
 
         if (timerRunning){
@@ -91,44 +110,50 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private boolean isTimerInputValid(){
+    public enum TimerInputValidationStates{
+        VALID,
+        EMPTY,
+        NOT_POSITIVE_NUMBER
+    }
+
+    private void displayToastMessage(TimerInputValidationStates state){
+        if (state == TimerInputValidationStates.EMPTY){
+            Toast.makeText(MainActivity.this, R.string.toastMessageEmpty,Toast.LENGTH_SHORT).show();
+        }
+        if (state == TimerInputValidationStates.NOT_POSITIVE_NUMBER){
+            Toast.makeText(MainActivity.this, R.string.toastMessagePositiveNumber,Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private TimerInputValidationStates getTimerInputState(){
+
         String timerInput = editTextInput.getText().toString();
-        boolean validTimerInput = true;
+        TimerInputValidationStates inputValidationStates = TimerInputValidationStates.VALID;
 
         if (timerInput.length() == 0){
-            Toast.makeText(MainActivity.this, R.string.toastMessageEmpty,Toast.LENGTH_SHORT).show();
-            validTimerInput = false;
+            inputValidationStates = TimerInputValidationStates.EMPTY;
         }
 
         timeSetInMilliseconds = timerInput.isEmpty() ? -1 : Long.parseLong(timerInput) * 60000;
 
         if (timeSetInMilliseconds == 0) {
-            Toast.makeText(MainActivity.this, R.string.toastMessagePositiveNumber,Toast.LENGTH_SHORT).show();
-            validTimerInput = false;
+            inputValidationStates = TimerInputValidationStates.NOT_POSITIVE_NUMBER;
         }
-        return validTimerInput;
+        return inputValidationStates;
     }
 
-    private void setTime(long milliseconds) {
+    private void setTimerDuration(long milliseconds) {
         timeLeftInMilliseconds = milliseconds;
-        updateTimer();
+        setCountdownText();
         closeKeyboardAfterSetInput();
+        cleanTimerInput();
     }
 
     private void cleanTimerInput() {
         editTextInput.setText("");
     }
 
-    private void startStopTimer() {
-        if (timerRunning) {
-            stopTimer();
-        }
-        else {
-            startTimer();
-        }
-    }
-
-    private void updateTimer(){
+    private void setCountdownText(){
         int minutes = (int) timeLeftInMilliseconds / 1000 / 60;
         int seconds = (int) timeLeftInMilliseconds / 1000 % 60;
 
@@ -139,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopTimer() {
         countdownTimer.cancel();
-        countdownButton.setText(R.string.buttonStartText);
+        startStopButton.setText(R.string.buttonStartText);
         timerRunning = false;
         updateVisibilityOfButtons();
     }
@@ -150,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTick(long millisUntilFinished) {
                 timeLeftInMilliseconds = millisUntilFinished;
-                updateTimer();
+                setCountdownText();
                 updateVisibilityOfButtons();
             }
 
@@ -158,22 +183,14 @@ public class MainActivity extends AppCompatActivity {
             public void onFinish() {
                 displayTimeRunOutNotification();
                 Toast.makeText(MainActivity.this, R.string.toastMessageTimeRunOut, Toast.LENGTH_SHORT).show();
-                countdownButton.setText(R.string.buttonStartText);
+                startStopButton.setText(R.string.buttonStartText);
                 timerRunning = false;
                 vibrate();
                 updateVisibilityOfButtons();
             }
         }.start();
-        countdownButton.setText(R.string.buttonPauseText);
+        startStopButton.setText(R.string.buttonPauseText);
         timerRunning = true;
-    }
-
-    private void closeKeyboardAfterSetInput() {
-        View view = this.getCurrentFocus();
-        if (view != null) {
-            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(),0);
-        }
     }
 
     private void updateVisibilityOfButtons() {
@@ -195,11 +212,21 @@ public class MainActivity extends AppCompatActivity {
     private void displayTimeRunOutNotification() {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID);
         builder.setSmallIcon(R.drawable.ic_launcher_background);
-        builder.setContentTitle(getString(R.string.notificationTitle));
-        builder.setContentText(getString( R.string.notificationContentMessage));
+        builder.setContentTitle(getString(R.string.notificationTimerTitle));
+        builder.setContentText(getString( R.string.notificationTimerContentMessage));
         builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
         NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
         notificationManagerCompat.notify(NOTIFICATION_ID, builder.build());
     }
+
+    private void closeKeyboardAfterSetInput() {
+        View view = this.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(),0);
+        }
+    }
+
+
 }
