@@ -19,7 +19,6 @@ public class MainActivity extends AppCompatActivity {
 
     private EditText editTextInput;
     private TextView countdownText;
-    private String timeLeftText;
 
     private Button setButton;
     private Button startStopButton;
@@ -73,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        setCountdownText();
+        setCountdownText(0);
     }
 
     @Override
@@ -91,7 +90,6 @@ public class MainActivity extends AppCompatActivity {
         outState.putLong(TIME_LEFT_IN_MILLISECONDS , timeLeftInMilliseconds);
         outState.putBoolean(TIMER_RUNNING,timerRunning);
         outState.putLong(END_TIME,endTime );
-
     }
 
     @Override
@@ -100,7 +98,8 @@ public class MainActivity extends AppCompatActivity {
 
         timeLeftInMilliseconds = savedInstanceState.getLong(TIME_LEFT_IN_MILLISECONDS);
         timerRunning = savedInstanceState.getBoolean(TIMER_RUNNING);
-        setCountdownText();
+
+        setCountdownText(timeLeftInMilliseconds);
         updateVisibilityOfButtons();
 
         if (timerRunning){
@@ -110,19 +109,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public enum TimerInputValidationStates{
-        VALID,
-        EMPTY,
-        NOT_POSITIVE_NUMBER
+    private enum TimerInputValidationStates{
+        VALID(0),
+        EMPTY(R.string.toastMessageEmpty),
+        NOT_POSITIVE_NUMBER(R.string.toastMessagePositiveNumber);
+
+        private int stringResult;
+
+        TimerInputValidationStates(int stringRes) {
+            this.stringResult = stringRes;
+        }
+
+        public int getStringResult() {
+            return stringResult;
+        }
     }
 
     private void displayToastMessage(TimerInputValidationStates state){
-        if (state == TimerInputValidationStates.EMPTY){
-            Toast.makeText(MainActivity.this, R.string.toastMessageEmpty,Toast.LENGTH_SHORT).show();
-        }
-        if (state == TimerInputValidationStates.NOT_POSITIVE_NUMBER){
-            Toast.makeText(MainActivity.this, R.string.toastMessagePositiveNumber,Toast.LENGTH_SHORT).show();
-        }
+        Toast.makeText(this, state.getStringResult(), Toast.LENGTH_SHORT).show();
     }
 
     private TimerInputValidationStates getTimerInputState(){
@@ -131,10 +135,12 @@ public class MainActivity extends AppCompatActivity {
         TimerInputValidationStates inputValidationStates = TimerInputValidationStates.VALID;
 
         if (timerInput.length() == 0){
+            timeSetInMilliseconds = -1;
             inputValidationStates = TimerInputValidationStates.EMPTY;
         }
-
-        timeSetInMilliseconds = timerInput.isEmpty() ? -1 : Long.parseLong(timerInput) * 60000;
+        else{
+            timeSetInMilliseconds = Long.parseLong(timerInput) * 60000;
+        }
 
         if (timeSetInMilliseconds == 0) {
             inputValidationStates = TimerInputValidationStates.NOT_POSITIVE_NUMBER;
@@ -144,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setTimerDuration(long milliseconds) {
         timeLeftInMilliseconds = milliseconds;
-        setCountdownText();
+        setCountdownText(timeLeftInMilliseconds);
         closeKeyboardAfterSetInput();
         cleanTimerInput();
     }
@@ -153,11 +159,18 @@ public class MainActivity extends AppCompatActivity {
         editTextInput.setText("");
     }
 
-    private void setCountdownText(){
-        int minutes = (int) timeLeftInMilliseconds / 1000 / 60;
-        int seconds = (int) timeLeftInMilliseconds / 1000 % 60;
+    private void setCountdownText(long timeLeftInMilliseconds){
+        int hours = (int) (timeLeftInMilliseconds / 1000) / 3600;
+        int minutes = (int) ((timeLeftInMilliseconds / 1000) % 3600) / 60;
+        int seconds = (int) (timeLeftInMilliseconds / 1000) % 60;
 
-        timeLeftText = String.format(Locale.getDefault(), "%02d:%02d",minutes, seconds);
+        String timeLeftText;
+        if (hours > 0) {
+            timeLeftText = String.format(Locale.getDefault(),
+                    "%d:%02d:%02d", hours, minutes, seconds);
+        } else{
+            timeLeftText = String.format(Locale.getDefault(), "%02d:%02d",minutes, seconds);
+        }
 
         countdownText.setText(timeLeftText);
     }
@@ -175,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTick(long millisUntilFinished) {
                 timeLeftInMilliseconds = millisUntilFinished;
-                setCountdownText();
+                setCountdownText(timeLeftInMilliseconds);
                 updateVisibilityOfButtons();
             }
 
@@ -227,6 +240,4 @@ public class MainActivity extends AppCompatActivity {
             inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(),0);
         }
     }
-
-
 }
