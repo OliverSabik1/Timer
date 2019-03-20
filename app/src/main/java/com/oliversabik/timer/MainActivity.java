@@ -25,7 +25,6 @@ public class MainActivity extends AppCompatActivity {
 
     private CountDownTimer countdownTimer;
     private long timeLeftInMilliseconds;
-    private long timeSetInMilliseconds;
     private long endTime;
     private boolean timerRunning;
 
@@ -49,13 +48,14 @@ public class MainActivity extends AppCompatActivity {
         setButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                TimerInputValidationStates timerInputValidationStates = getTimerInputState ();
+                TimerInputValidationState timerInputValidationState = getTimerInputState ();
 
-                if (timerInputValidationStates == TimerInputValidationStates.VALID){
+                if (timerInputValidationState == TimerInputValidationState.VALID){
+                    Long timeSetInMilliseconds = parseTimerInputToMilliseconds();
                     setTimerDuration(timeSetInMilliseconds);
                 }
                 else{
-                    displayToastMessage(timerInputValidationStates);
+                    displayToastMessage(timerInputValidationState);
                 }
             }
         });
@@ -109,43 +109,47 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private enum TimerInputValidationStates{
-        VALID(0),
+    private enum TimerInputValidationState {
+        VALID(null),
         EMPTY(R.string.toastMessageEmpty),
         NOT_POSITIVE_NUMBER(R.string.toastMessagePositiveNumber);
 
-        private int stringResult;
+        private Integer stringResult;
 
-        TimerInputValidationStates(int stringRes) {
-            this.stringResult = stringRes;
+        TimerInputValidationState(Integer stringRes) {
+            this.stringResult =  stringRes;
         }
 
-        public int getStringResult() {
+        private int getStringResult() {
             return stringResult;
         }
     }
 
-    private void displayToastMessage(TimerInputValidationStates state){
+    private void displayToastMessage(TimerInputValidationState state){
         Toast.makeText(this, state.getStringResult(), Toast.LENGTH_SHORT).show();
     }
 
-    private TimerInputValidationStates getTimerInputState(){
+    private long parseTimerInputToMilliseconds() {
+        long timeSetInMilliseconds;
+        String timerInput = editTextInput.getText().toString();
+        timeSetInMilliseconds = Long.parseLong(timerInput)* 60000;
+        return timeSetInMilliseconds;
+    }
+
+    private TimerInputValidationState getTimerInputState(){
 
         String timerInput = editTextInput.getText().toString();
-        TimerInputValidationStates inputValidationStates = TimerInputValidationStates.VALID;
+        TimerInputValidationState inputValidationState;
 
         if (timerInput.length() == 0){
-            timeSetInMilliseconds = -1;
-            inputValidationStates = TimerInputValidationStates.EMPTY;
+            inputValidationState = TimerInputValidationState.EMPTY;
         }
-        else{
-            timeSetInMilliseconds = Long.parseLong(timerInput) * 60000;
+        else if (timerInput.equals("0")){
+            inputValidationState = TimerInputValidationState.NOT_POSITIVE_NUMBER;
+        } else {
+            inputValidationState = TimerInputValidationState.VALID;
         }
-
-        if (timeSetInMilliseconds == 0) {
-            inputValidationStates = TimerInputValidationStates.NOT_POSITIVE_NUMBER;
-        }
-        return inputValidationStates;
+        return inputValidationState;
     }
 
     private void setTimerDuration(long milliseconds) {
