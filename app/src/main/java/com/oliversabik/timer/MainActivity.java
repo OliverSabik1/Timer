@@ -65,8 +65,10 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (!timerRunning) {
                     startTimer();
+                    timerRunning = true;
                 }
                 else {
+                    timerRunning = false;
                     stopTimer();
                 }
             }
@@ -182,7 +184,6 @@ public class MainActivity extends AppCompatActivity {
     private void stopTimer() {
         countdownTimer.cancel();
         startStopButton.setText(R.string.buttonStartText);
-        timerRunning = false;
         updateVisibilityOfButtons();
     }
 
@@ -207,7 +208,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }.start();
         startStopButton.setText(R.string.buttonPauseText);
-        timerRunning = true;
     }
 
     private void updateVisibilityOfButtons() {
