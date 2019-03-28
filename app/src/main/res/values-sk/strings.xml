@@ -3,7 +3,8 @@
     <string name="toastMessageEmpty">Pole nemoze byt prazdne</string>
     <string name="toastMessagePositiveNumber">Zadaj vacsie cislo ako 0</string>
     <string name="buttonStartText">Spusti</string>
-    <string name="buttonPauseText">Stopni</string>
+    <string name="buttonPauseText">Pauzni</string>
+    <string name="buttonStopText">Stopni</string>
     <string name="toastMessageTimeRunOut">Cas sa minul</string>
     <string name="notificationTimerTitle">Casovac</string>
     <string name="notificationTimerContentMessage">Cas sa minul</string>

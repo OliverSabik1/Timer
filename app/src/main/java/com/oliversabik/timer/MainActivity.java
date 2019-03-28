@@ -1,58 +1,75 @@
 package com.oliversabik.timer;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.os.Vibrator;
+
+import java.sql.Time;
+import java.util.EventListener;
 import java.util.Locale;
+import java.util.Timer;
 
 public class MainActivity extends AppCompatActivity {
 
     private EditText editTextInput;
     private TextView countdownText;
 
-    private Button setButton;
-    private Button startStopButton;
+    private Button pauseButton;
+    private Button stopButton;
+    private Button startButton;
 
     private CountDownTimer countdownTimer;
-    private long timeLeftInMilliseconds;
     private long endTime;
+    private long pausedTimeLeftInMillisecond;
     private boolean timerRunning;
+
+    private TimerState timerState;
 
     private static final int NOTIFICATION_ID = 1;
     private static final String CHANNEL_ID = "personal_notification";
-    private static final String TIME_LEFT_IN_MILLISECONDS = "timeLeftInMilliseconds";
     private static final String TIMER_RUNNING = "timerRunning";
     private static final String END_TIME = "endTime";
+    private static final String PAUSED_TIME = "countdownText";
+    private static final String TIMER_STATE = "timerState";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        timerState = TimerState.STOPPED;
+
         countdownText = findViewById(R.id.countdown_text);
         editTextInput = findViewById(R.id.edit_text_input);
 
-        setButton = findViewById(R.id.button_set);
-        startStopButton = findViewById(R.id.countdown_button);
+        pauseButton = findViewById(R.id.pauseButton);
+        startButton = findViewById(R.id.statButton);
+        stopButton = findViewById(R.id.stopButton);
 
-        setButton.setOnClickListener(new View.OnClickListener() {
+        startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 TimerInputValidationState timerInputValidationState = getTimerInputState ();
-
+                timerState = TimerState.STARTED;
                 if (timerInputValidationState == TimerInputValidationState.VALID){
                     Long timeSetInMilliseconds = parseTimerInputToMilliseconds();
                     setTimerDuration(timeSetInMilliseconds);
+                    endTime = System.currentTimeMillis() + timeSetInMilliseconds;
+                    if (!timerRunning){
+                        startTimer(timeSetInMilliseconds);
+                        timerRunning = true;
+                    }
                 }
                 else{
                     displayToastMessage(timerInputValidationState);
@@ -60,21 +77,48 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        startStopButton.setOnClickListener(new View.OnClickListener() {
+        pauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!timerRunning) {
-                    startTimer();
-                    timerRunning = true;
+                if (timerRunning){
+                    timerState = TimerState.PAUSED;
+                    stopTimer();
+                    pausedTimeLeftInMillisecond = endTime - System.currentTimeMillis();
+                    timerRunning = false;
                 }
                 else {
-                    timerRunning = false;
-                    stopTimer();
+                    endTime = System.currentTimeMillis() + pausedTimeLeftInMillisecond;
+                    timerState = TimerState.STARTED;
+                    startTimer(endTime - System.currentTimeMillis());
+                    timerRunning = true;
                 }
             }
         });
 
-        setCountdownText(0);
+        stopButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                timerState = TimerState.STOPPED;
+                setCountdownText(0);
+                stopTimer();
+                timerRunning = false;
+            }
+        });
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateUI(timerState);
+
+        if (timerRunning) {
+            Long timeLeftInMilliseconds = endTime - System.currentTimeMillis();
+            startTimer(timeLeftInMilliseconds);
+        }
+        else{
+            setCountdownText(pausedTimeLeftInMillisecond);
+        }
     }
 
     @Override
@@ -89,25 +133,44 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
-        outState.putLong(TIME_LEFT_IN_MILLISECONDS , timeLeftInMilliseconds);
         outState.putBoolean(TIMER_RUNNING,timerRunning);
-        outState.putLong(END_TIME,endTime );
+        outState.putLong(END_TIME, endTime);
+        outState.putLong(PAUSED_TIME, pausedTimeLeftInMillisecond);
+        outState.putSerializable(TIMER_STATE, timerState);
     }
 
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
-        timeLeftInMilliseconds = savedInstanceState.getLong(TIME_LEFT_IN_MILLISECONDS);
         timerRunning = savedInstanceState.getBoolean(TIMER_RUNNING);
+        endTime = savedInstanceState.getLong(END_TIME);
+        pausedTimeLeftInMillisecond = savedInstanceState.getLong(PAUSED_TIME);
+        timerState = (TimerState) savedInstanceState.getSerializable(TIMER_STATE);
+    }
 
-        setCountdownText(timeLeftInMilliseconds);
-        updateVisibilityOfButtons();
+    private enum TimerState {
+        STOPPED,
+        STARTED,
+        PAUSED
+    }
 
-        if (timerRunning){
-            endTime = savedInstanceState.getLong(END_TIME);
-            timeLeftInMilliseconds = endTime - System.currentTimeMillis();
-            startTimer();
+    private void updateUI(TimerState timerState) {
+        switch (timerState){
+            case PAUSED:
+                startButton.setVisibility(View.INVISIBLE);
+                editTextInput.setVisibility(View.INVISIBLE);
+                pauseButton.setText(R.string.buttonStartText);
+                break;
+            case STARTED:
+                startButton.setVisibility(View.INVISIBLE);
+                editTextInput.setVisibility(View.INVISIBLE);
+                pauseButton.setText(R.string.buttonPauseText);
+                break;
+            case STOPPED:
+                startButton.setVisibility(View.VISIBLE);
+                editTextInput.setVisibility(View.VISIBLE);
+                break;
         }
     }
 
@@ -155,8 +218,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setTimerDuration(long milliseconds) {
-        timeLeftInMilliseconds = milliseconds;
-        setCountdownText(timeLeftInMilliseconds);
+        setCountdownText(milliseconds);
         closeKeyboardAfterSetInput();
         cleanTimerInput();
     }
@@ -177,48 +239,34 @@ public class MainActivity extends AppCompatActivity {
         } else{
             timeLeftText = String.format(Locale.getDefault(), "%02d:%02d",minutes, seconds);
         }
-
         countdownText.setText(timeLeftText);
     }
 
     private void stopTimer() {
         countdownTimer.cancel();
-        startStopButton.setText(R.string.buttonStartText);
-        updateVisibilityOfButtons();
+        updateUI(timerState);
     }
 
-    private void startTimer() {
-        endTime = System.currentTimeMillis() + timeLeftInMilliseconds;
-        countdownTimer = new CountDownTimer(timeLeftInMilliseconds, 100) {
+    private void startTimer(long timeDurationInMilliseconds) {
+
+        countdownTimer = new CountDownTimer(timeDurationInMilliseconds, 100) {
             @Override
             public void onTick(long millisUntilFinished) {
-                timeLeftInMilliseconds = millisUntilFinished;
-                setCountdownText(timeLeftInMilliseconds);
-                updateVisibilityOfButtons();
+                setCountdownText(millisUntilFinished);
+                updateUI(timerState);
             }
 
             @Override
             public void onFinish() {
+                timerState = TimerState.STOPPED;
                 displayTimeRunOutNotification();
                 Toast.makeText(MainActivity.this, R.string.toastMessageTimeRunOut, Toast.LENGTH_SHORT).show();
-                startStopButton.setText(R.string.buttonStartText);
+                updateUI(timerState);
                 timerRunning = false;
                 vibrate();
-                updateVisibilityOfButtons();
             }
         }.start();
-        startStopButton.setText(R.string.buttonPauseText);
-    }
 
-    private void updateVisibilityOfButtons() {
-        if (timerRunning) {
-            editTextInput.setVisibility(View.INVISIBLE);
-            setButton.setVisibility(View.INVISIBLE);
-        }
-        else {
-            editTextInput.setVisibility(View.VISIBLE);
-            setButton.setVisibility(View.VISIBLE);
-        }
     }
 
     private void vibrate() {

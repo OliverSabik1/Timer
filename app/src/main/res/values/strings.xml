@@ -4,6 +4,7 @@
     <string name="toastMessagePositiveNumber">Enter positive number</string>
     <string name="buttonStartText">Start</string>
     <string name="buttonPauseText">Pause</string>
+    <string name="buttonStopText">Stop</string>
     <string name="toastMessageTimeRunOut">Time run out</string>
     <string name="notificationTimerTitle">Timer</string>
     <string name="notificationTimerContentMessage">Time run out</string>

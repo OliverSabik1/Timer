@@ -1,0 +1,21 @@
+18.03.
+Enum valid state lepsie urobit, null? aby valit nebol preprezentovany 0, ale niecim co viem ze ten state neexistuje [DONE]
+premenovat enum aj premenne singular pouzivaj! [DONE]
+timer.cancle(); - vediet vysvetlit preco je to v onStope(), ak to bude aj inde vediet vysvetlit a musi to fungovat [DONE]
+tieLeftInMillisicenods ma byt instancna premenna ? ked uz mam instancnu endTime?
+OnCreate(bundele) onRestore(bundle) posiela sa do parametra to ista instancia statu
+relativrLayout upravit aby UI nebolo rozjebane [DONE]
+
+19.03
+do start timeru poslat parameter, long timerDurationInMilliseconds
+mat len jedno tlacidlo ktore bude sluzit hned na nastavenie a spustenie timeru
+uplne odstranit instancnu premennu timeLeftInMilliseconds !!!!!
+log.i. override kazdu metodu onStart->Destroy(info)
+case ked stopnem a znovu zacnem
+>> az ked budem mat ostatne veci done -> potom ries bug v pausovani ()pridat cas ku ednTimu
+
+26.3
+parsovanie dpc, timerLeftInMilli pouzivat len ked som v pauznutom stave
+zakomentovany kod eliminovat
+vyhrat sa viac s UI - vycentrovat
+Enumy pre stavy a upddatovanie UI, TIme runnig sa da dat prec potom (enumy started paused stoped)
