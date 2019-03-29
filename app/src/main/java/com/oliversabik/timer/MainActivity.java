@@ -7,18 +7,13 @@ import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import java.sql.Time;
-import java.util.EventListener;
 import java.util.Locale;
-import java.util.Timer;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -32,13 +27,11 @@ public class MainActivity extends AppCompatActivity {
     private CountDownTimer countdownTimer;
     private long endTime;
     private long pausedTimeLeftInMillisecond;
-    private boolean timerRunning;
 
     private TimerState timerState;
 
     private static final int NOTIFICATION_ID = 1;
     private static final String CHANNEL_ID = "personal_notification";
-    private static final String TIMER_RUNNING = "timerRunning";
     private static final String END_TIME = "endTime";
     private static final String PAUSED_TIME = "countdownText";
     private static final String TIMER_STATE = "timerState";
@@ -61,15 +54,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 TimerInputValidationState timerInputValidationState = getTimerInputState ();
-                timerState = TimerState.STARTED;
                 if (timerInputValidationState == TimerInputValidationState.VALID){
                     Long timeSetInMilliseconds = parseTimerInputToMilliseconds();
                     setTimerDuration(timeSetInMilliseconds);
                     endTime = System.currentTimeMillis() + timeSetInMilliseconds;
-                    if (!timerRunning){
-                        startTimer(timeSetInMilliseconds);
-                        timerRunning = true;
-                    }
+                    startTimer(timeSetInMilliseconds);
                 }
                 else{
                     displayToastMessage(timerInputValidationState);
@@ -80,17 +69,13 @@ public class MainActivity extends AppCompatActivity {
         pauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (timerRunning){
-                    timerState = TimerState.PAUSED;
-                    stopTimer();
+                if (timerState == TimerState.STARTED){
+                    pauseTimer();
                     pausedTimeLeftInMillisecond = endTime - System.currentTimeMillis();
-                    timerRunning = false;
                 }
-                else {
+                else{
                     endTime = System.currentTimeMillis() + pausedTimeLeftInMillisecond;
-                    timerState = TimerState.STARTED;
                     startTimer(endTime - System.currentTimeMillis());
-                    timerRunning = true;
                 }
             }
         });
@@ -98,13 +83,10 @@ public class MainActivity extends AppCompatActivity {
         stopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                timerState = TimerState.STOPPED;
                 setCountdownText(0);
                 stopTimer();
-                timerRunning = false;
             }
         });
-
     }
 
     @Override
@@ -112,11 +94,11 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         updateUI(timerState);
 
-        if (timerRunning) {
+        if (timerState == TimerState.STARTED) {
             Long timeLeftInMilliseconds = endTime - System.currentTimeMillis();
             startTimer(timeLeftInMilliseconds);
         }
-        else{
+        else {
             setCountdownText(pausedTimeLeftInMillisecond);
         }
     }
@@ -124,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (timerRunning){
+        if (timerState == TimerState.STARTED){
             stopTimer();
         }
     }
@@ -133,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
-        outState.putBoolean(TIMER_RUNNING,timerRunning);
         outState.putLong(END_TIME, endTime);
         outState.putLong(PAUSED_TIME, pausedTimeLeftInMillisecond);
         outState.putSerializable(TIMER_STATE, timerState);
@@ -143,7 +124,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
-        timerRunning = savedInstanceState.getBoolean(TIMER_RUNNING);
         endTime = savedInstanceState.getLong(END_TIME);
         pausedTimeLeftInMillisecond = savedInstanceState.getLong(PAUSED_TIME);
         timerState = (TimerState) savedInstanceState.getSerializable(TIMER_STATE);
@@ -161,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
                 startButton.setVisibility(View.INVISIBLE);
                 editTextInput.setVisibility(View.INVISIBLE);
                 pauseButton.setText(R.string.buttonStartText);
-                break;
+            break;
             case STARTED:
                 startButton.setVisibility(View.INVISIBLE);
                 editTextInput.setVisibility(View.INVISIBLE);
@@ -243,6 +223,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void stopTimer() {
+        if (countdownTimer != null && timerState == TimerState.STARTED)  {
+            countdownTimer.cancel();
+        }
+        timerState = TimerState.STOPPED;
+        updateUI(timerState);
+    }
+
+    private void pauseTimer() {
+        timerState = TimerState.PAUSED;
         countdownTimer.cancel();
         updateUI(timerState);
     }
@@ -252,6 +241,7 @@ public class MainActivity extends AppCompatActivity {
         countdownTimer = new CountDownTimer(timeDurationInMilliseconds, 100) {
             @Override
             public void onTick(long millisUntilFinished) {
+                timerState = TimerState.STARTED;
                 setCountdownText(millisUntilFinished);
                 updateUI(timerState);
             }
@@ -262,11 +252,9 @@ public class MainActivity extends AppCompatActivity {
                 displayTimeRunOutNotification();
                 Toast.makeText(MainActivity.this, R.string.toastMessageTimeRunOut, Toast.LENGTH_SHORT).show();
                 updateUI(timerState);
-                timerRunning = false;
                 vibrate();
             }
         }.start();
-
     }
 
     private void vibrate() {
